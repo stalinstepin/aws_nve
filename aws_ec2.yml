@@ -1,0 +1,50 @@
+---
+
+- name: Create a test ec2 instance.
+  hosts: localhost
+  gather_facts: False
+  vars:
+    keypair: aws-prog
+    instance_type: t2.micro
+    image: ami-4aa04129
+    region: us-west-1
+    aws_access_key: xxxxxx
+    aws_secret_key: xxxxxx
+
+  tasks:
+    - name: Launch instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: default
+         instance_type: "{{ instance_type }}"
+         #instance_ids: "{{ ec2.instance_ids }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         state: present
+         aws_access_key: xxxxxx
+         aws_secret_key: xxxxxx
+      register: ec2
+    - name: Print all ec2 variables
+      debug: var=ec2
+
+    - name: Creating a S3_Bucket to hold the VMDK file.
+      s3_bucket:
+         name: nve-aws-s3bucket
+         state: present
+         #state: absent ==> To delete the s3_bucket that you have created.
+         region: "{{ region }}"
+         aws_access_key: xxxxxx
+         aws_secret_key: xxxxxx
+    - name: Uploading the VMDK file to the S3_bucket
+      s3_sync:
+         bucket: nve-aws-s3bucket
+         file_root: /tmp/nve-file
+         region: "{{ region }}"
+         include: "*"
+         permission: public-read
+         mode: push
+         aws_access_key: xxxxxx
+         aws_secret_key: xxxxxx
+
+
