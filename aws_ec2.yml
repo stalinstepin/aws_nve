@@ -8,25 +8,11 @@
     instance_type: t2.micro
     image: ami-4aa04129
     region: us-west-1
-    aws_access_key: xxxxxx
-    aws_secret_key: xxxxxx
+    aws_access_key: xxxxxxxxxxxxxxxxx
+    aws_secret_key: xxxxxxxxxxxxxxxxx
+
 
   tasks:
-    - name: Launch instance
-      ec2:
-         key_name: "{{ keypair }}"
-         group: default
-         instance_type: "{{ instance_type }}"
-         #instance_ids: "{{ ec2.instance_ids }}"
-         image: "{{ image }}"
-         wait: true
-         region: "{{ region }}"
-         state: present
-         aws_access_key: xxxxxx
-         aws_secret_key: xxxxxx
-      register: ec2
-    - name: Print all ec2 variables
-      debug: var=ec2
 
     - name: Creating a S3_Bucket to hold the VMDK file.
       s3_bucket:
@@ -34,8 +20,12 @@
          state: present
          #state: absent ==> To delete the s3_bucket that you have created.
          region: "{{ region }}"
-         aws_access_key: xxxxxx
-         aws_secret_key: xxxxxx
+         aws_access_key: xxxxxxxxxxxxxxxxx
+         aws_secret_key: xxxxxxxxxxxxxxxxx
+      register: s3_bucket
+    - name: Print all s3_backet variables
+      debug: var=s3_bucket
+
     - name: Uploading the VMDK file to the S3_bucket
       s3_sync:
          bucket: nve-aws-s3bucket
@@ -44,7 +34,25 @@
          include: "*"
          permission: public-read
          mode: push
-         aws_access_key: xxxxxx
-         aws_secret_key: xxxxxx
+         aws_access_key: xxxxxxxxxxxxxxxxx
+         aws_secret_key: xxxxxxxxxxxxxxxxx
+      register: s3_sync
+    - name: Print all s3_sync variables
+      debug: var=s3_sync
+
+    - name: Creating iam role for vmimport
+      command: "aws iam create-role --role-name vmimport --assume-role-policy-document file:///trust-policy.json"
+      aws_access_key: xxxxxxxxxxxxxxxxx
+      aws_secret_key: xxxxxxxxxxxxxxxxx
+
+    - name: Using the following put-role-policy command to attach the policy to the role created above.
+      command: "aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-document file:///role-policy.json"
+      aws_access_key: xxxxxxxxxxxxxxxxx
+      aws_secret_key: xxxxxxxxxxxxxxxxx
+
+    - name : Importing image from S3 bucket
+      command: "aws ec2 import-image --description 'Networker Virtual Edition OVA' --architecture x86_64 --platform Linux --region us-west-1 --disk-containers file:///containers.json"
+      aws_access_key: xxxxxxxxxxxxxxxxx
+      aws_secret_key: xxxxxxxxxxxxxxxxx
 
 
